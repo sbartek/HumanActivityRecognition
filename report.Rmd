@@ -1,0 +1,13 @@
+## Getting data
+
+```{r}
+if (!file.exists('data')) dir.create('data')
+traing.data.url <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv'
+testing.data.url <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv'
+traing.data.path <- 'data/pml-training.csv'
+testing.data.path <- 'data/pml-testing.csv'
+download.file(traing.data.url, destfile=traing.data.path, method='curl' )
+download.file(testing.data.url, destfile=testing.data.path, method='curl' )
+training.data <- read.csv(traing.data.path)
+testing.data <- read.csv(testing.data.path)
+```
