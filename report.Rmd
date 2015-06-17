@@ -2,12 +2,91 @@
 
 ```{r}
 if (!file.exists('data')) dir.create('data')
-traing.data.url <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv'
-testing.data.url <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv'
-traing.data.path <- 'data/pml-training.csv'
+
+training.data.path <- 'data/pml-training.csv'
+if (!file.exists(training.data.path)) {
+  training.data.url <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv'
+  download.file(training.data.url, destfile=training.data.path, method='curl' )
+
+}
+
+training.data <- read.csv(training.data.path)
+
 testing.data.path <- 'data/pml-testing.csv'
-download.file(traing.data.url, destfile=traing.data.path, method='curl' )
-download.file(testing.data.url, destfile=testing.data.path, method='curl' )
-training.data <- read.csv(traing.data.path)
+if (!file.exists(testing.data.path)) {
+  testing.data.url <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv'
+  download.file(testing.data.url, destfile=testing.data.path, method='curl' )
+}
 testing.data <- read.csv(testing.data.path)
+```
+
+## Pre-processing
+
+```{r}
+str(training.data)
+N <- ncol(training.data)
+
+hasNoNAs <- apply(training.data, 2,
+                  function(col) { all(!is.na(col)) })
+training.data.1 <- training.data[,hasNoNAs]
+hasNoDIVs <- apply(training.data.1, 2,
+                  function(col) { all(col!="#DIV/0!") })
+
+training.data.2 <- training.data.1[,hasNoDIVs]
+
+training.data.3 <- training.data.2[,8:length(colnames(training.data.2))] 
+str(training.data.3)
+
+```
+
+
+## Data slitting
+
+```{r}
+require(caret)
+
+trainIndex <- createDataPartition(training.data.3$classe, p = .7,
+                                  list = FALSE,
+                                  times = 1)
+length(trainIndex)
+
+dataTrain <- training.data.3[ trainIndex,]
+dataTest  <- training.data.3[-trainIndex,]
+```
+
+
+## Models
+
+```{r}
+require(MASS)
+classeInx <- ncol(dataTrain)
+lda.fit <- lda(classe~., data=dataTrain)
+summary(lda.fit, dataTest)
+lda.fit
+
+lda.pred = predict(lda.fit, dataTest)
+lda.class <- lda.pred$class
+mean(lda.class == dataTest$classe)
+
+glm.probs <- predict(glm.fit, type ="response")
+glm.probs
+glm.probs[1:10]
+cor(dataTrain[,-classeInx])
+cor(dataTrain)
+```
+
+```{r}
+all(!is.na(training.data$classe))
+
+table(training.data$kurtosis_yaw_belt )
+
+```
+
+## Testing
+
+```{r}
+
+
+dim(testing.data)
+
 ```
