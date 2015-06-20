@@ -1,3 +1,13 @@
+## Introduction
+
+I have tried few models with some parameters. Here I present few of
+them and then choose the best one. Then I show the cross-validation
+confirms my choice. Actually two models give correct answers. They are:
+* bagging and Random forest,
+* boosting.
+The first one is preferable. It gives smaller error, and is faster.
+
+
 ## Getting data
 
 ```{r}
@@ -45,19 +55,32 @@ require(caret)
 set.seed(12345)
 trainIndex <- createDataPartition(training.data.3$classe, p = .7,
                                   list = FALSE)
-
-length(trainIndex)
-
 dataTrain <- training.data.3[ trainIndex,]
 dataTest  <- training.data.3[-trainIndex,]
+```
+
+## Prepare cache
+
+We have cached some computation. If you want to redo everything just
+delete file `data/DB`.
+
+```{r}
+require(filehash)
+
+if (!file.exists('data')) {dir.create('data')}
+dbPath <- 'data/DB'
+if (!file.exists(dbPath)) {dbCreate(dbPath)}
+db <-  dbInit(dbPath)
+
 ```
 
 
 ## Models
 
+
 ### Linear Discriminant Analysis
 
-```{r}
+```{r lda}
 require(MASS)
 classeInx <- ncol(dataTrain)
 lda.fit <- lda(classe~., data=dataTrain)
@@ -65,42 +88,68 @@ ldaPredTrain <- predict(lda.fit, dataTrain)
 confusionMatrix(ldaPredTrain$class, dataTrain$classe)
 ```
 
-
-
 ### Trees
 
-```{r}
-tree.fit <- train(classe ~ ., data = dataTrain, method="rpart")
+```{r trees}
+if (dbExists(db, "tree.fit")) {
+  tree.fit <- dbFetch(db, "tree.fit")
+} else {
+  tree.fit <- train(classe ~ ., data = dataTrain, method="rpart")
+  dbInsert(db, "tree.fit", tree.fit)
+}
 treePredTrain <- predict(tree.fit, dataTrain)
 confusionMatrix(treePredTrain, dataTrain$classe)
 ```
 
 ### Bagging and Random forest
 
-```{r}
-rf.bag <- train(classe ~ ., data = dataTrain, ntree=10)
+```{r bagging}
+if (dbExists(db, "rf.bag")) {
+  rf.bag <- dbFetch(db, "rf.bag")
+} else {
+  rf.bag <- train(classe ~ ., data = dataTrain, ntree=10)
+  dbInsert(db, "rf.bag", rf.bag)
+}
 rfPredTrain <- predict(rf.bag, dataTrain)
 confusionMatrix(rfPredTrain, dataTrain$classe)
 ```
 
 ### Boosting
 
-```{r}
-## boosting <- train(classe ~ ., data = dataTrain, method="gbm", verbose =F)
-## boostPredTrain <- predict(boosting, dataTrain)
-## confusionMatrix(boostPredTrain, dataTrain$classe)
+```{r boosting}
+if (dbExists(db, "boosting")) {
+  boosting <- dbFetch(db, "boosting")
+} else {
+  boosting <- train(classe ~ ., data = dataTrain, method="gbm") 
+  dbInsert(db, "boosting", boosting)
+}
+boostPredTrain <- predict(boosting, dataTrain)
+confusionMatrix(boostPredTrain, dataTrain$classe)
 ```
 
 ## Testing
+
+### Bagging and Random forest
 
 ```{r}
 rfPredTest <- predict(rf.bag, dataTest)
 confusionMatrix(rfPredTest, dataTest$classe)
 ```
 
+### Boosting
+
+```{r boostingTests}
+boostPredTest <- predict(boosting, dataTest) 
+confusionMatrix(boostPredTest, dataTest$classe)
+```
+
+
 ## Our predictions for testing.data
 
 ```{r}
-answers  <- predict(rf.bag2, testing.data)
-answers 
+rf.answers  <- predict(rf.bag, testing.data)
+boost.answers <- predict(boosting, testing.data)
+answers.all <- data.frame(RandomForest=rf.answers, Boosting=boost.answers)
+answers.all
+answers <- answers.all$RandomForest
 ```
