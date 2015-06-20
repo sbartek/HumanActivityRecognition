@@ -17,7 +17,6 @@ training.data.path <- 'data/pml-training.csv'
 if (!file.exists(training.data.path)) {
   training.data.url <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv'
   download.file(training.data.url, destfile=training.data.path, method='curl' )
-
 }
 
 training.data <- read.csv(training.data.path)
@@ -44,7 +43,6 @@ hasNoDIVs <- apply(training.data.1, 2,
 training.data.2 <- training.data.1[,hasNoDIVs]
 
 training.data.3 <- training.data.2[,8:length(colnames(training.data.2))] 
-
 ```
 
 
@@ -71,7 +69,6 @@ if (!file.exists('data')) {dir.create('data')}
 dbPath <- 'data/DB'
 if (!file.exists(dbPath)) {dbCreate(dbPath)}
 db <-  dbInit(dbPath)
-
 ```
 
 
@@ -146,10 +143,26 @@ confusionMatrix(boostPredTest, dataTest$classe)
 
 ## Our predictions for testing.data
 
+So, as we say in Introduction, we try to predict answers using random
+forest.
+
 ```{r}
 rf.answers  <- predict(rf.bag, testing.data)
-boost.answers <- predict(boosting, testing.data)
-answers.all <- data.frame(RandomForest=rf.answers, Boosting=boost.answers)
-answers.all
 answers <- answers.all$RandomForest
+
+```
+
+But just for curiosity we see hoe other method did.
+
+```{r}
+lda.answers <- predict(lda.fit, testing.data)
+tree.answers <- predict(tree.fit, testing.data)
+
+boost.answers <- predict(boosting, testing.data)
+answers.all <- data.frame(LinearDiscriminantAnalysis=lda.answers$class,
+                          Trees=tree.answers,
+                          RandomForest=rf.answers,
+                          Boosting=boost.answers)
+answers.all
+
 ```
