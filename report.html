@@ -63,7 +63,12 @@ img {
 
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
-<p>I have tried few models with some parameters. Here I present few of them and then choose the best one. Then I show the cross-validation confirms my choice. Actually two models give correct answers. They are: * bagging and Random forest, * boosting. The first one is preferable. It gives smaller error, and is faster.</p>
+<p>I have tried few models with some parameters. Here I present few of them and then choose the best one. Then I show the cross-validation confirms my choice. Actually two models give correct answers. They are:</p>
+<ul>
+<li>bagging and Random forest,</li>
+<li>boosting.</li>
+</ul>
+<p>The first one is preferable. It gives smaller cross-validation error, and is faster.</p>
 </div>
 <div id="getting-data" class="section level2">
 <h2>Getting data</h2>
@@ -98,10 +103,13 @@ training.data.2 &lt;- training.data.1[,hasNoDIVs]
 
 training.data.3 &lt;- training.data.2[,8:length(colnames(training.data.2))] </code></pre>
 </div>
-<div id="data-slitting" class="section level2">
-<h2>Data slitting</h2>
-<pre class="r"><code>require(caret)
-set.seed(12345)
+<div id="data-splitting" class="section level2">
+<h2>Data splitting</h2>
+<pre class="r"><code>require(caret)</code></pre>
+<pre><code>## Loading required package: caret
+## Loading required package: lattice
+## Loading required package: ggplot2</code></pre>
+<pre class="r"><code>set.seed(12345)
 trainIndex &lt;- createDataPartition(training.data.3$classe, p = .7,
                                   list = FALSE)
 dataTrain &lt;- training.data.3[ trainIndex,]
@@ -110,9 +118,10 @@ dataTest  &lt;- training.data.3[-trainIndex,]</code></pre>
 <div id="prepare-cache" class="section level2">
 <h2>Prepare cache</h2>
 <p>We have cached some computation. If you want to redo everything just delete file <code>data/DB</code>.</p>
-<pre class="r"><code>require(filehash)
-
-if (!file.exists('data')) {dir.create('data')}
+<pre class="r"><code>require(filehash)</code></pre>
+<pre><code>## Loading required package: filehash
+## filehash: Simple key-value database (2.2-2 2013-12-16)</code></pre>
+<pre class="r"><code>if (!file.exists('data')) {dir.create('data')}
 dbPath &lt;- 'data/DB'
 if (!file.exists(dbPath)) {dbCreate(dbPath)}
 db &lt;-  dbInit(dbPath)</code></pre>
@@ -121,8 +130,9 @@ db &lt;-  dbInit(dbPath)</code></pre>
 <h2>Models</h2>
 <div id="linear-discriminant-analysis" class="section level3">
 <h3>Linear Discriminant Analysis</h3>
-<pre class="r"><code>require(MASS)
-classeInx &lt;- ncol(dataTrain)
+<pre class="r"><code>require(MASS)</code></pre>
+<pre><code>## Loading required package: MASS</code></pre>
+<pre class="r"><code>classeInx &lt;- ncol(dataTrain)
 lda.fit &lt;- lda(classe~., data=dataTrain)
 ldaPredTrain &lt;- predict(lda.fit, dataTrain)
 confusionMatrix(ldaPredTrain$class, dataTrain$classe)</code></pre>
@@ -166,8 +176,9 @@ confusionMatrix(ldaPredTrain$class, dataTrain$classe)</code></pre>
   tree.fit &lt;- train(classe ~ ., data = dataTrain, method=&quot;rpart&quot;)
   dbInsert(db, &quot;tree.fit&quot;, tree.fit)
 }
-treePredTrain &lt;- predict(tree.fit, dataTrain)
-confusionMatrix(treePredTrain, dataTrain$classe)</code></pre>
+treePredTrain &lt;- predict(tree.fit, dataTrain)</code></pre>
+<pre><code>## Loading required package: rpart</code></pre>
+<pre class="r"><code>confusionMatrix(treePredTrain, dataTrain$classe)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
@@ -205,42 +216,45 @@ confusionMatrix(treePredTrain, dataTrain$classe)</code></pre>
 <pre class="r"><code>if (dbExists(db, &quot;rf.bag&quot;)) {
   rf.bag &lt;- dbFetch(db, &quot;rf.bag&quot;)
 } else {
-  rf.bag &lt;- train(classe ~ ., data = dataTrain, ntree=10)
+  rf.bag &lt;- train(classe ~ ., data = dataTrain, method='rf', ntree=8)
   dbInsert(db, &quot;rf.bag&quot;, rf.bag)
 }
-rfPredTrain &lt;- predict(rf.bag, dataTrain)
-confusionMatrix(rfPredTrain, dataTrain$classe)</code></pre>
+rfPredTrain &lt;- predict(rf.bag, dataTrain)</code></pre>
+<pre><code>## Loading required package: randomForest
+## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre class="r"><code>confusionMatrix(rfPredTrain, dataTrain$classe)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 3906    1    0    0    0
-##          B    0 2656    0    0    0
-##          C    0    1 2396    1    0
-##          D    0    0    0 2251    0
-##          E    0    0    0    0 2525
+##          A 3904    1    1    0    0
+##          B    2 2655    2    0    0
+##          C    0    1 2391    2    1
+##          D    0    1    2 2250    0
+##          E    0    0    0    0 2524
 ## 
 ## Overall Statistics
-##                                      
-##                Accuracy : 0.9998     
-##                  95% CI : (0.9994, 1)
-##     No Information Rate : 0.2843     
-##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
-##                                      
-##                   Kappa : 0.9997     
-##  Mcnemar's Test P-Value : NA         
+##                                           
+##                Accuracy : 0.9991          
+##                  95% CI : (0.9984, 0.9995)
+##     No Information Rate : 0.2843          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9988          
+##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            1.0000   0.9992   1.0000   0.9996   1.0000
-## Specificity            0.9999   1.0000   0.9998   1.0000   1.0000
-## Pos Pred Value         0.9997   1.0000   0.9992   1.0000   1.0000
-## Neg Pred Value         1.0000   0.9998   1.0000   0.9999   1.0000
+## Sensitivity            0.9995   0.9989   0.9979   0.9991   0.9996
+## Specificity            0.9998   0.9996   0.9996   0.9997   1.0000
+## Pos Pred Value         0.9995   0.9985   0.9983   0.9987   1.0000
+## Neg Pred Value         0.9998   0.9997   0.9996   0.9998   0.9999
 ## Prevalence             0.2843   0.1935   0.1744   0.1639   0.1838
-## Detection Rate         0.2843   0.1933   0.1744   0.1639   0.1838
-## Detection Prevalence   0.2844   0.1933   0.1746   0.1639   0.1838
-## Balanced Accuracy      0.9999   0.9996   0.9999   0.9998   1.0000</code></pre>
+## Detection Rate         0.2842   0.1933   0.1741   0.1638   0.1837
+## Detection Prevalence   0.2843   0.1936   0.1743   0.1640   0.1837
+## Balanced Accuracy      0.9996   0.9993   0.9988   0.9994   0.9998</code></pre>
 </div>
 <div id="boosting" class="section level3">
 <h3>Boosting</h3>
@@ -250,39 +264,52 @@ confusionMatrix(rfPredTrain, dataTrain$classe)</code></pre>
   boosting &lt;- train(classe ~ ., data = dataTrain, method=&quot;gbm&quot;) 
   dbInsert(db, &quot;boosting&quot;, boosting)
 }
-boostPredTrain &lt;- predict(boosting, dataTrain)
-confusionMatrix(boostPredTrain, dataTrain$classe)</code></pre>
+boostPredTrain &lt;- predict(boosting, dataTrain)</code></pre>
+<pre><code>## Loading required package: gbm
+## Loading required package: survival
+## 
+## Attaching package: 'survival'
+## 
+## The following object is masked from 'package:caret':
+## 
+##     cluster
+## 
+## Loading required package: splines
+## Loading required package: parallel
+## Loaded gbm 2.1.1
+## Loading required package: plyr</code></pre>
+<pre class="r"><code>confusionMatrix(boostPredTrain, dataTrain$classe)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 3873   58    0    1    4
-##          B   19 2552   63    6   15
-##          C   11   47 2314   47   13
-##          D    2    1   18 2189   23
-##          E    1    0    1    9 2470
+##          A 3882   50    0    0    2
+##          B   12 2565   59    4   11
+##          C   10   42 2315   50   17
+##          D    1    1   20 2185   22
+##          E    1    0    2   13 2473
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.9753          
-##                  95% CI : (0.9726, 0.9779)
+##                Accuracy : 0.9769          
+##                  95% CI : (0.9743, 0.9794)
 ##     No Information Rate : 0.2843          
 ##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
 ##                                           
-##                   Kappa : 0.9688          
-##  Mcnemar's Test P-Value : 1.217e-13       
+##                   Kappa : 0.9708          
+##  Mcnemar's Test P-Value : 1.695e-12       
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9916   0.9601   0.9658   0.9720   0.9782
-## Specificity            0.9936   0.9907   0.9896   0.9962   0.9990
-## Pos Pred Value         0.9840   0.9612   0.9515   0.9803   0.9956
-## Neg Pred Value         0.9966   0.9904   0.9927   0.9945   0.9951
+## Sensitivity            0.9939   0.9650   0.9662   0.9702   0.9794
+## Specificity            0.9947   0.9922   0.9895   0.9962   0.9986
+## Pos Pred Value         0.9868   0.9676   0.9511   0.9803   0.9936
+## Neg Pred Value         0.9976   0.9916   0.9928   0.9942   0.9954
 ## Prevalence             0.2843   0.1935   0.1744   0.1639   0.1838
-## Detection Rate         0.2819   0.1858   0.1685   0.1594   0.1798
-## Detection Prevalence   0.2865   0.1933   0.1770   0.1626   0.1806
-## Balanced Accuracy      0.9926   0.9754   0.9777   0.9841   0.9886</code></pre>
+## Detection Rate         0.2826   0.1867   0.1685   0.1591   0.1800
+## Detection Prevalence   0.2864   0.1930   0.1772   0.1623   0.1812
+## Balanced Accuracy      0.9943   0.9786   0.9779   0.9832   0.9890</code></pre>
 </div>
 </div>
 <div id="testing" class="section level2">
@@ -295,33 +322,33 @@ confusionMatrix(rfPredTest, dataTest$classe)</code></pre>
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 1667   10    0    2    0
-##          B    6 1117    8    1    3
-##          C    1    8 1014   12    0
-##          D    0    1    4  947    6
-##          E    0    3    0    2 1073
+##          A 1667   11    0    2    0
+##          B    5 1104   10    2    2
+##          C    0   13 1007   19    2
+##          D    0    1    9  936    8
+##          E    2   10    0    5 1070
 ## 
 ## Overall Statistics
-##                                           
-##                Accuracy : 0.9886          
-##                  95% CI : (0.9856, 0.9912)
-##     No Information Rate : 0.2845          
-##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
-##                                           
-##                   Kappa : 0.9856          
-##  Mcnemar's Test P-Value : NA              
+##                                          
+##                Accuracy : 0.9828         
+##                  95% CI : (0.9792, 0.986)
+##     No Information Rate : 0.2845         
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16      
+##                                          
+##                   Kappa : 0.9783         
+##  Mcnemar's Test P-Value : NA             
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9958   0.9807   0.9883   0.9824   0.9917
-## Specificity            0.9972   0.9962   0.9957   0.9978   0.9990
-## Pos Pred Value         0.9929   0.9841   0.9797   0.9885   0.9954
-## Neg Pred Value         0.9983   0.9954   0.9975   0.9965   0.9981
+## Sensitivity            0.9958   0.9693   0.9815   0.9710   0.9889
+## Specificity            0.9969   0.9960   0.9930   0.9963   0.9965
+## Pos Pred Value         0.9923   0.9831   0.9673   0.9811   0.9844
+## Neg Pred Value         0.9983   0.9927   0.9961   0.9943   0.9975
 ## Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
-## Detection Rate         0.2833   0.1898   0.1723   0.1609   0.1823
-## Detection Prevalence   0.2853   0.1929   0.1759   0.1628   0.1832
-## Balanced Accuracy      0.9965   0.9884   0.9920   0.9901   0.9953</code></pre>
+## Detection Rate         0.2833   0.1876   0.1711   0.1590   0.1818
+## Detection Prevalence   0.2855   0.1908   0.1769   0.1621   0.1847
+## Balanced Accuracy      0.9964   0.9826   0.9872   0.9836   0.9927</code></pre>
 </div>
 <div id="boosting-1" class="section level3">
 <h3>Boosting</h3>
@@ -331,41 +358,44 @@ confusionMatrix(boostPredTest, dataTest$classe)</code></pre>
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 1648   39    0    2    2
-##          B   17 1065   40    0   15
-##          C    6   32  967   33    6
-##          D    3    2   18  919   22
-##          E    0    1    1   10 1037
+##          A 1653   38    0    2    2
+##          B   14 1065   36    0   11
+##          C    5   33  972   31   10
+##          D    2    3   16  923   20
+##          E    0    0    2    8 1039
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.9577          
-##                  95% CI : (0.9522, 0.9627)
+##                Accuracy : 0.9604          
+##                  95% CI : (0.9551, 0.9652)
 ##     No Information Rate : 0.2845          
 ##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
 ##                                           
-##                   Kappa : 0.9465          
-##  Mcnemar's Test P-Value : 2.715e-06       
+##                   Kappa : 0.9499          
+##  Mcnemar's Test P-Value : 7.752e-07       
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9845   0.9350   0.9425   0.9533   0.9584
-## Specificity            0.9898   0.9848   0.9842   0.9909   0.9975
-## Pos Pred Value         0.9746   0.9367   0.9262   0.9533   0.9886
-## Neg Pred Value         0.9938   0.9844   0.9878   0.9909   0.9907
+## Sensitivity            0.9875   0.9350   0.9474   0.9575   0.9603
+## Specificity            0.9900   0.9871   0.9837   0.9917   0.9979
+## Pos Pred Value         0.9752   0.9458   0.9248   0.9575   0.9905
+## Neg Pred Value         0.9950   0.9845   0.9888   0.9917   0.9911
 ## Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
-## Detection Rate         0.2800   0.1810   0.1643   0.1562   0.1762
-## Detection Prevalence   0.2873   0.1932   0.1774   0.1638   0.1782
-## Balanced Accuracy      0.9871   0.9599   0.9633   0.9721   0.9780</code></pre>
+## Detection Rate         0.2809   0.1810   0.1652   0.1568   0.1766
+## Detection Prevalence   0.2880   0.1913   0.1786   0.1638   0.1782
+## Balanced Accuracy      0.9887   0.9611   0.9656   0.9746   0.9791</code></pre>
 </div>
 </div>
 <div id="our-predictions-for-testing.data" class="section level2">
 <h2>Our predictions for testing.data</h2>
 <p>So, as we say in Introduction, we try to predict answers using random forest.</p>
 <pre class="r"><code>rf.answers  &lt;- predict(rf.bag, testing.data)
-answers &lt;- answers.all$RandomForest</code></pre>
-<p>But just for curiosity we see hoe other method did.</p>
+answers &lt;- rf.answers
+answers</code></pre>
+<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E</code></pre>
+<p>But just for curiosity we see how other method did.</p>
 <pre class="r"><code>lda.answers &lt;- predict(lda.fit, testing.data)
 tree.answers &lt;- predict(tree.fit, testing.data)
 

@@ -3,10 +3,12 @@
 I have tried few models with some parameters. Here I present few of
 them and then choose the best one. Then I show the cross-validation
 confirms my choice. Actually two models give correct answers. They are:
+
 * bagging and Random forest,
 * boosting.
-The first one is preferable. It gives smaller error, and is faster.
 
+The first one is preferable. It gives smaller cross-validation error,
+and is faster.
 
 ## Getting data
 
@@ -45,8 +47,7 @@ training.data.2 <- training.data.1[,hasNoDIVs]
 training.data.3 <- training.data.2[,8:length(colnames(training.data.2))] 
 ```
 
-
-## Data slitting
+## Data splitting
 
 ```{r}
 require(caret)
@@ -71,9 +72,7 @@ if (!file.exists(dbPath)) {dbCreate(dbPath)}
 db <-  dbInit(dbPath)
 ```
 
-
 ## Models
-
 
 ### Linear Discriminant Analysis
 
@@ -104,7 +103,7 @@ confusionMatrix(treePredTrain, dataTrain$classe)
 if (dbExists(db, "rf.bag")) {
   rf.bag <- dbFetch(db, "rf.bag")
 } else {
-  rf.bag <- train(classe ~ ., data = dataTrain, ntree=10)
+  rf.bag <- train(classe ~ ., data = dataTrain, method='rf', ntree=8)
   dbInsert(db, "rf.bag", rf.bag)
 }
 rfPredTrain <- predict(rf.bag, dataTrain)
@@ -148,11 +147,11 @@ forest.
 
 ```{r}
 rf.answers  <- predict(rf.bag, testing.data)
-answers <- answers.all$RandomForest
-
+answers <- rf.answers
+answers
 ```
 
-But just for curiosity we see hoe other method did.
+But just for curiosity we see how other method did.
 
 ```{r}
 lda.answers <- predict(lda.fit, testing.data)
